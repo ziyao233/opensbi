@@ -111,6 +111,7 @@ void fdt_cpu_fixup(void *fdt)
 	struct sbi_domain *dom = sbi_domain_thishart_ptr();
 	int err, cpu_offset, cpus_offset, len;
 	const char *mmu_type, *extensions;
+	struct sbi_scratch *scratch;
 	u32 hartid, hartindex;
 
 	err = fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 32);
@@ -142,13 +143,22 @@ void fdt_cpu_fixup(void *fdt)
 			fdt_setprop_string(fdt, cpu_offset, "status",
 					   "disabled");
 
-		/* Claim Zicntr extension if OpenSBI emulates TIMER CSR */
+		/*
+		 * Claim Zicntr extension in riscv,isa-extensions if
+		 *  1. OpenSBI can emulate time CSR with a timer
+		 *  2. The other two CSRs specified by Zicntr are available
+		 */
 		if (!sbi_timer_get_device())
+			continue;
+
+		scratch = sbi_hartindex_to_scratch(hartindex);
+		if (!sbi_hart_has_extension(scratch, SBI_HART_EXT_ZICNTR_CYCLE) ||
+		    !sbi_hart_has_extension(scratch, SBI_HART_EXT_ZICNTR_INSTRET))
 			continue;
 
 		extensions = fdt_getprop(fdt, cpu_offset,
 					 "riscv,isa-extensions", &len);
-		if (extensions &&
+		if (!extensions ||
 		    !fdt_stringlist_contains(extensions, len, "zicntr")) {
 			err = fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 16);
 			if (err)
