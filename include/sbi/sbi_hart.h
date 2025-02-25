@@ -37,8 +37,12 @@ enum sbi_hart_extensions {
 	SBI_HART_EXT_SSCOFPMF,
 	/** HART has Sstc extension */
 	SBI_HART_EXT_SSTC,
-	/** HART has Zicntr extension (i.e. HW cycle, time & instret CSRs) */
-	SBI_HART_EXT_ZICNTR,
+	/** HART has HW time CSR, as specified in Zicntr extension */
+	SBI_HART_EXT_ZICNTR_TIME,
+	/** HART has HW cycle CSR, as specified in Zicntr extension */
+	SBI_HART_EXT_ZICNTR_CYCLE,
+	/** HART has HW instret CSR, as specified in Zicntr extension */
+	SBI_HART_EXT_ZICNTR_INSTRET,
 	/** HART has Zihpm extension */
 	SBI_HART_EXT_ZIHPM,
 	/** HART has Zkr extension */

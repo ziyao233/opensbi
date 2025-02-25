@@ -669,7 +669,9 @@ const struct sbi_hart_ext_data sbi_hart_ext[] = {
 	__SBI_HART_EXT_DATA(smstateen, SBI_HART_EXT_SMSTATEEN),
 	__SBI_HART_EXT_DATA(sscofpmf, SBI_HART_EXT_SSCOFPMF),
 	__SBI_HART_EXT_DATA(sstc, SBI_HART_EXT_SSTC),
-	__SBI_HART_EXT_DATA(zicntr, SBI_HART_EXT_ZICNTR),
+	__SBI_HART_EXT_DATA(zicntr_time, SBI_HART_EXT_ZICNTR_TIME),
+	__SBI_HART_EXT_DATA(zicntr_cycle, SBI_HART_EXT_ZICNTR_CYCLE),
+	__SBI_HART_EXT_DATA(zicntr_instret, SBI_HART_EXT_ZICNTR_INSTRET),
 	__SBI_HART_EXT_DATA(zihpm, SBI_HART_EXT_ZIHPM),
 	__SBI_HART_EXT_DATA(zkr, SBI_HART_EXT_ZKR),
 	__SBI_HART_EXT_DATA(smcntrpmf, SBI_HART_EXT_SMCNTRPMF),
@@ -782,7 +784,7 @@ static int hart_detect_features(struct sbi_scratch *scratch)
 	struct sbi_hart_features *hfeatures =
 		sbi_scratch_offset_ptr(scratch, hart_features_offset);
 	unsigned long val, oldval;
-	bool has_zicntr = false;
+	bool has_time = false, has_cycle = false, has_instret = false;
 	int rc;
 
 	/* If hart features already detected then do nothing */
@@ -919,7 +921,13 @@ __pmp_skip:
 			CSR_SCOUNTOVF, SBI_HART_EXT_SSCOFPMF);
 	/* Detect if hart supports time CSR */
 	__check_ext_csr(SBI_HART_PRIV_VER_UNKNOWN,
-			CSR_TIME, SBI_HART_EXT_ZICNTR);
+			CSR_TIME, SBI_HART_EXT_ZICNTR_TIME);
+	/* Detect if hart supports cycle CSR */
+	__check_ext_csr(SBI_HART_PRIV_VER_UNKNOWN,
+			CSR_CYCLE, SBI_HART_EXT_ZICNTR_CYCLE);
+	/* Detect if hart supports instret CSR */
+	__check_ext_csr(SBI_HART_PRIV_VER_UNKNOWN,
+			CSR_INSTRET, SBI_HART_EXT_ZICNTR_INSTRET);
 	/* Detect if hart has AIA local interrupt CSRs */
 	__check_ext_csr(SBI_HART_PRIV_VER_UNKNOWN,
 			CSR_MTOPI, SBI_HART_EXT_SMAIA);
@@ -938,8 +946,10 @@ __pmp_skip:
 
 #undef __check_ext_csr
 
-	/* Save trap based detection of Zicntr */
-	has_zicntr = sbi_hart_has_extension(scratch, SBI_HART_EXT_ZICNTR);
+	/* Save trap based detection of Zicntr CSRs */
+	has_time = sbi_hart_has_extension(scratch, SBI_HART_EXT_ZICNTR_TIME);
+	has_cycle = sbi_hart_has_extension(scratch, SBI_HART_EXT_ZICNTR_CYCLE);
+	has_instret = sbi_hart_has_extension(scratch, SBI_HART_EXT_ZICNTR_INSTRET);
 
 	/* Let platform populate extensions */
 	rc = sbi_platform_extensions_init(sbi_platform_thishart_ptr(),
@@ -947,9 +957,13 @@ __pmp_skip:
 	if (rc)
 		return rc;
 
-	/* Zicntr should only be detected using traps */
-	__sbi_hart_update_extension(hfeatures, SBI_HART_EXT_ZICNTR,
-				    has_zicntr);
+	/* Zicntr CSRs should only be detected using traps */
+	__sbi_hart_update_extension(hfeatures, SBI_HART_EXT_ZICNTR_TIME,
+				    has_time);
+	__sbi_hart_update_extension(hfeatures, SBI_HART_EXT_ZICNTR_CYCLE,
+				    has_cycle);
+	__sbi_hart_update_extension(hfeatures, SBI_HART_EXT_ZICNTR_INSTRET,
+				    has_instret);
 
 	/* Extensions implied by other extensions and features */
 	if (hfeatures->mhpm_mask)
